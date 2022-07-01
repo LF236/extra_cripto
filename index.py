@@ -1,6 +1,14 @@
-from distutils.command.clean import clean
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, hmac
+from cryptography.hazmat.primitives.asymmetric import dh, ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 import os
-from pydoc import cli
+from cryptography.hazmat.primitives import serialization
+from time import sleep
+import threading
+
+
 import sys
 import socket
 import json
@@ -8,7 +16,9 @@ import inquirer
 from helpers.inquirer_questions import *
 from helpers.manejo_mensajes import *
 
+# Variables globales
 NoneType = type(None)
+
 
 def registrarUsuario( cliente ):
     res = inquirer.prompt( question_registro_usuario )
@@ -22,20 +32,62 @@ def registrarUsuario( cliente ):
     print( leer_mensaje( cliente ).decode( 'utf-8' ) )
     print( '\n' )
 
+def registrarNuevoServicio( cliente, sesion_activa ):
+    res = inquirer.prompt( question_agregar_servicio )
+    if type( res ) == NoneType:
+        return
+    res = json.dumps( res )
+    msj = '4.'
+    msj += res
+    msj += '-'
+    msj += sesion_activa
+    # SI los datos se procesan de manera correcta, enviamos la data al Socket
+    # Enviamos el mensaje
+    mandar_mensaje( cliente, bytes( msj, encoding='raw_unicode_escape' ) )    
+    print( leer_mensaje( cliente ).decode( 'utf-8' ) )
+    print( '\n' )
+
+def traer_mis_llaves( cliente, sesion_activa ):
+    msj = '5.'
+    msj += sesion_activa
+    mandar_mensaje( cliente, bytes( msj, encoding='raw_unicode_escape' ) )    
+    print( leer_mensaje( cliente ).decode( 'utf-8' ) )
+    print( '\n' )
+
+def work_logueado( cliente, sesion_activa ):
+    while True:
+        res = inquirer.prompt( question_sesion_activa )
+        if res[ 'opcion_activa' ] == '1':
+            print( 'LISTAMOS SERVICIOS' )
+            traer_mis_llaves( cliente, sesion_activa )
+        if res[ 'opcion_activa' ] == '2':
+            print( '\nAgregar Nuevo Servicio' )
+            registrarNuevoServicio( cliente, sesion_activa )
+        if res[ 'opcion_activa' ] == '3':
+            print( 'Cerrando Sesión\n' )
+            sesion_activa = ''
+            break    
+        
+
 def login( cliente ):
+    # Limpiamos las credenciales de sesión
     # Función que lee los datos desde consola los manda al socket para verificar credenciales
     res = inquirer.prompt( question_login )
     if type( res ) == NoneType:
         return
     res = json.dumps( res )
+    sesion_activa = res
+    # Agregamos la info de las credenciales de sesión
     msj = '1.'
     msj += res
-    mandar_mensaje( cliente, bytes( msj, encoding='raw_unicode_escape' ) )
-    print( leer_mensaje( cliente ).decode( 'utf-8' ) )
-    print( '\n' )
-
-    # Si el mensaje es OK lanzamos el submenu, ciclando 
-
+    mandar_mensaje( cliente, bytes( msj, encoding='raw_unicode_escape' ) )    
+    response = leer_mensaje( cliente ).decode( 'utf-8' )
+    print( response )
+    if response == 'OK':
+        print( 'Inicio de sesión exitoso' )
+        # Armar el nuevo menu
+        print( '\n' )
+        work_logueado( cliente, sesion_activa )
 
 def conectar_servidor( host, puerto ):
     # Socket para IP v4
@@ -60,7 +112,14 @@ def work_loop( cliente ):
             registrarUsuario( cliente )
         if res[ 'accion' ] == '3':
             cliente.close()
-            break
+            return
+
+def crear_llaves_dh():
+    dh_cliente_priv = ec.generate_private_key(
+        ec.SECP384R1(), default_backend())
+    # Esta es la que se tiene que intercambiar
+    dh_cliente_pub = dh_cliente_priv.public_key()
+    return dh_cliente_priv, dh_cliente_pub
 
 if __name__ == '__main__':
     # Ejecutar código
@@ -68,6 +127,7 @@ if __name__ == '__main__':
         host = sys.argv[ 1 ]
         puerto = sys.argv[ 2 ]
         cliente = conectar_servidor( host, puerto )
+        dh_cliente_priv, dh_cliente_pub = crear_llaves_dh()
         work_loop( cliente )
         pass
     

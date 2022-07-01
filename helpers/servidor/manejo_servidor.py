@@ -48,3 +48,46 @@ def proceso_login( mensaje, cliente ):
     except Usuario.DoesNotExist:
         mandar_mensaje( cliente, b'Usuario no existe en la base de datos' )
 
+def almacenar_credencial( mensaje, cliente ):
+    try:
+        mensaje = mensaje.decode( 'utf-8' )
+        # Eliminar el tipo de comando
+        mensaje = mensaje[ 2: ]
+        # Separar el mensaje con la información del cliente logueado
+        data_mensaje, info_login = mensaje.split( '-' )
+        # Parseamos la data a JSON
+        data_mensaje = ast.literal_eval( data_mensaje )
+        info_login = ast.literal_eval( info_login )
+        # Buscamos la información del usuario logueado en la DB
+        query = ( Usuario.select( ).where( Usuario.user == info_login[ 'usuario' ] ).get() )
+        id_usuario = query.id_usuario
+        # Verificar que el servicio no exista en la base de datos
+        queryServicio = ( Servicio.select( ).where( Servicio.id_usuario == id_usuario, Servicio.nombre == data_mensaje[ 'nombre_servicio' ] ).get() )
+        mandar_mensaje( cliente, b'El usuario ya tiene un servicio registrado con el mismo nombre' )
+
+    except Servicio.DoesNotExist:
+        nuevo_servicio = Servicio( nombre = data_mensaje[ 'nombre_servicio' ], password = data_mensaje[ 'password_servicio' ], id_usuario = id_usuario )
+        nuevo_servicio.save()
+        mandar_mensaje( cliente, b'El servicio se registro de manera exitosa' )
+
+def listar_servicios( mensaje, cliente ):
+    try:
+        print( mensaje )
+        mensaje = mensaje.decode( 'utf-8' )
+        # Eliminar el tipo de comando
+        mensaje = mensaje[ 2: ]
+        # Parseamos la data
+        mensaje_to_json = ast.literal_eval( mensaje )
+        query = ( Usuario.select( ).where( Usuario.user == mensaje_to_json[ 'usuario' ] ).get() )
+        id_usuario = query.id_usuario
+        queryServicio = ( Servicio.select( ).where( Servicio.id_usuario == id_usuario ).get() )
+        queryServicioAux = ( Servicio.select( ).where( Servicio.id_usuario == id_usuario ) )
+        res = ''
+        for elemento in queryServicioAux:
+            res += 'Servicio: {nombre} - Password: {password} \n'.format( nombre = elemento.nombre, password = elemento.password )
+        mandar_mensaje( cliente, bytes( res, encoding='raw_unicode_escape' ) )    
+
+    except Servicio.DoesNotExist:
+        mandar_mensaje( cliente, b'El usuario no tiene ningun servicio registrado' )
+
+

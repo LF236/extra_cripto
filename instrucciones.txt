@@ -1,0 +1,16 @@
+1.Crear llaves dh_cliente_priv y dh_cliente_pub -> ciclo de control
+2.Disparar método crear_llaves_dh()
+3. 
+
+
+* Servidor
+1. Creación de llavea EC 
+	1.1  ec_servidor_priv, ec_servidor_pub = crear_llaves_ec()
+	1.2 Serializar llaves dh_servidor_priv, dh_servidor_pub = crear_llaves_dh()
+
+2. LO anterior se manda al escucha
+	2.2 ENviando la privada y la publica del servidor ambas DH
+	3. S serializan las llaves que pasamos
+	4 Se firma cpn las llaves anteriores serializadas (ver codigo)
+	5. Se crea una cadena con todas las llaves con las que se firmo y la firma
+	6. Se escucha del lado del cliente que se pasen siempre la llave DHPUB

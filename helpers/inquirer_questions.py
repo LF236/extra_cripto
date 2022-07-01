@@ -1,4 +1,3 @@
-from email import message
 import inquirer
 from helpers.validacionesCrearCuenta import *
 
@@ -19,4 +18,21 @@ question_registro_usuario = [
 question_login = [
     inquirer.Text( 'usuario', message='Ingresa tu nombre de usuario' ),
     inquirer.Text( 'password', message='Ingresa tu contraseña' )
+]
+
+question_agregar_servicio = [
+    inquirer.Text( 'nombre_servicio', message='Ingresa el nombre del servicio', validate = validarNombreServicio ),
+    inquirer.Text( 'password_servicio', message='Ingresa la contraseña del servicio', validate= validarPasswordServicio )
+]
+
+question_sesion_activa = [
+    inquirer.List(
+        'opcion_activa',
+        message='Menú de sesión activa',
+        choices=[
+            ( '1.Listas mis llaves', '1' ),
+            ( '2.Agregar llave nueva', '2' ),
+            ( '3.Cerrar Sesión', '3' )
+        ]
+    )
 ]

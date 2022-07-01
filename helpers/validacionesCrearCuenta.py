@@ -15,3 +15,13 @@ def validarRepeatPassword( answers, current ):
     if current != answers[ 'password_usuario' ]:
         raise inquirer.errors.ValidationError( "", reason='Las dos contraseñas deben ser iguales - Preciona Ctrl + c y reinicia el proceso' )
     return True
+
+def validarNombreServicio ( answers, current ):
+    if len( current ) <= 1:
+        raise inquirer.errors.ValidationError( "", reason='Ingresa un nombre de usuario más grande' )
+    return True
+
+def validarPasswordServicio( answers, current ):
+    if len( current ) <= 1:
+        raise inquirer.errors.ValidationError( "", reason='Ingresa un password más grande' )
+    return True

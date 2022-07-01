@@ -3,7 +3,7 @@ import sys
 import threading
 from helpers.manejo_mensajes import *
 from helpers.DB.db import *
-from helpers.servidor.manejo_servidor import almacenar_usuario, proceso_login
+from helpers.servidor.manejo_servidor import almacenar_credencial, almacenar_usuario, listar_servicios, proceso_login
 def leer_opcion_cliente( cliente ):
     mensaje = leer_mensaje( cliente )
     if mensaje.startswith( b'1' ):
@@ -13,6 +13,15 @@ def leer_opcion_cliente( cliente ):
     if mensaje.startswith( b'2' ):
         print( 'CREANDO NUEVO USUARIO' );
         almacenar_usuario( mensaje, cliente )
+    
+    if mensaje.startswith( b'4' ):
+        print( 'ALMACENANDO SERVICIO CON SU CREDENCIAL' )
+        almacenar_credencial( mensaje, cliente )
+    
+    if mensaje.startswith( b'5' ):
+        print( 'LISTAR SERVICIOS POR USUARIO' )
+        listar_servicios( mensaje, cliente )
+
     pass
 
 def atencion_clientes( cliente ):
