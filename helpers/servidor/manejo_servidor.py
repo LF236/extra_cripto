@@ -1,6 +1,7 @@
 import ast
 from helpers.DB.db import *
 from helpers.manejo_mensajes import mandar_mensaje
+from helpers.gcm import *
 def almacenar_usuario( mensaje, cliente ):
     try:
         mensaje = mensaje.decode( 'utf-8' )
@@ -17,7 +18,8 @@ def almacenar_usuario( mensaje, cliente ):
         
     except Usuario.DoesNotExist:
         # Si el usuario no existe lo almacenamos en la DB
-        nuevo_usuario = Usuario( user = mensaje_to_json[ 'nombre_usuario' ], password = mensaje_to_json[ 'password_usuario' ] )
+        password_encrypt = cifrar( 'lf236', mensaje_to_json[ 'password_usuario' ] )
+        nuevo_usuario = Usuario( user = mensaje_to_json[ 'nombre_usuario' ], password = password_encrypt )
         nuevo_usuario.save()
         mandar_mensaje( cliente, b'El usuario registrado de manera correcta' )
 
@@ -36,8 +38,10 @@ def proceso_login( mensaje, cliente ):
         queryAux = ( Usuario.select( Usuario ).where( Usuario.user == usuario_login ) )
         band = False
         for usuario in queryAux:
-            print( usuario.user )
-            if usuario.user == mensaje_to_json[ 'usuario' ] and usuario.password == mensaje_to_json[ 'password' ]:
+            print( usuario.password )
+            password_desc_db = descifrar( 'lf236', usuario.password )
+            password_desc_db = password_desc_db.decode( 'utf-8' )
+            if usuario.user == mensaje_to_json[ 'usuario' ] and password_desc_db == mensaje_to_json[ 'password' ]:
                 band = True
         if band:
             mandar_mensaje( cliente, b'OK' )
@@ -66,7 +70,8 @@ def almacenar_credencial( mensaje, cliente ):
         mandar_mensaje( cliente, b'El usuario ya tiene un servicio registrado con el mismo nombre' )
 
     except Servicio.DoesNotExist:
-        nuevo_servicio = Servicio( nombre = data_mensaje[ 'nombre_servicio' ], password = data_mensaje[ 'password_servicio' ], id_usuario = id_usuario )
+        password_encrypt = cifrar( 'lf236', data_mensaje[ 'password_servicio' ] )
+        nuevo_servicio = Servicio( nombre = data_mensaje[ 'nombre_servicio' ], password = password_encrypt, id_usuario = id_usuario )
         nuevo_servicio.save()
         mandar_mensaje( cliente, b'El servicio se registro de manera exitosa' )
 
@@ -84,7 +89,9 @@ def listar_servicios( mensaje, cliente ):
         queryServicioAux = ( Servicio.select( ).where( Servicio.id_usuario == id_usuario ) )
         res = ''
         for elemento in queryServicioAux:
-            res += 'Servicio: {nombre} - Password: {password} \n'.format( nombre = elemento.nombre, password = elemento.password )
+            password_desc_db = descifrar( 'lf236', elemento.password )
+            password_desc_db = password_desc_db.decode( 'utf-8' )
+            res += 'Servicio: {nombre} - Password: {password} \n'.format( nombre = elemento.nombre, password = password_desc_db )
         mandar_mensaje( cliente, bytes( res, encoding='raw_unicode_escape' ) )    
 
     except Servicio.DoesNotExist:
