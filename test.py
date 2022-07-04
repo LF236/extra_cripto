@@ -1,29 +1,17 @@
-import os
-import re
-import sys
-from pprint import pprint
+# Creamos el contexto del servidor
+import socket
+import ssl
 
-sys.path.append(os.path.realpath("."))
-import inquirer  # noqa
+contexto = ssl.SSLContext( ssl.PROTOCOL_TLS_SERVER )
+contexto.minimum_version = ssl.TLSVersion.TLSv1_3 # Permitir a partir de TLS 1.3
+# Cagar certificados
+contexto.load_cert_chain( 'lf236.crt', 'lf236.key' )
 
-
-def phone_validation(answers, current):
-    if not re.match(r"\+?\d[\d ]+\d", current):
-        raise inquirer.errors.ValidationError("", reason="I don't like your phone number!")
-
-    return True
-
-
-questions = [
-    inquirer.Text("name", message="What's your name?"),
-    inquirer.Text("surname", message="What's your surname, {name}?"),
-    inquirer.Text(
-        "phone",
-        message="What's your phone number",
-        validate=phone_validation,
-    ),
-]
-
-answers = inquirer.prompt(questions)
-
-pprint(answers)
+with socket.socket( socket.AF_INET, socket.SOCK_STREAM, 0 ) as sock:
+    sock.bind( ( 'localhost', 8982 ) )
+    sock.listen( 5 )
+    with contexto.wrap_socket( sock, server_side=True ) as ssock:
+        conn, addr = ssock.accept()
+        mensaje = conn.recv( 4096 )
+        print( mensaje )
+        conn.send( b'OK' )

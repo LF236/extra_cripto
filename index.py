@@ -2,11 +2,13 @@ import sys
 import socket
 import json
 import inquirer
+import ssl
 from helpers.inquirer_questions import *
 from helpers.manejo_mensajes import *
 
 # Variables globales
 NoneType = type(None)
+context = ssl.create_default_context( cafile='lf236.crt' )
 
 def registrarUsuario( cliente ):
     res = inquirer.prompt( question_registro_usuario )
@@ -107,8 +109,9 @@ if __name__ == '__main__':
         host = sys.argv[ 1 ]
         puerto = sys.argv[ 2 ]
         cliente = conectar_servidor( host, puerto )
-        work_loop( cliente )
-        pass
-    
+        with context.wrap_socket( cliente, server_hostname = host ) as ssock:
+            print( ssock.version() )
+            work_loop( ssock )
+        
     except IndexError:
         print( 'Error al ingresar datos - Estructura: python index.py host puerto ' )

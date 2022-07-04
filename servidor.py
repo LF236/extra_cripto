@@ -1,12 +1,17 @@
 import socket
 import sys
 import threading
+import ssl
 from helpers.manejo_mensajes import *
 from helpers.DB.db import *
 from helpers.servidor.manejo_servidor import almacenar_credencial, almacenar_usuario, listar_servicios, proceso_login
 
 # GLOBAL VARS
-USUARIOS = {'lf236': 'lf2366665', 'fernandoRH': 'xxx77s7as7a7s7sa7'}
+# Creamos el contexto del servidor
+contexto = ssl.SSLContext( ssl.PROTOCOL_TLS_SERVER )
+contexto.minimum_version = ssl.TLSVersion.TLSv1_3 # Permitir a partir de TLS 1.3
+# Cagar certificados
+contexto.load_cert_chain( 'lf236.crt', 'lf236.key' )
 
 def leer_opcion_cliente( cliente ):
     mensaje = leer_mensaje( cliente )
@@ -31,17 +36,19 @@ def leer_opcion_cliente( cliente ):
 # ------> Hilos principales de ejecución
 def crear_servidor( puerto ):
     # Función que crear un servidor Socket TCP para antender clientes
-    servidor = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+    servidor = socket.socket( socket.AF_INET, socket.SOCK_STREAM, 0 )
+    # servidor = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
     servidor.bind( ( 'localhost', int( puerto ) ) )
     return servidor
 
 def escuchar( servidor ):
-    servidor.listen( 5 )
-    while True:
-        cliente, _ = servidor.accept()
+    with contexto.wrap_socket( servidor, server_side = True ) as servidor_sock:
+        servidor_sock.listen( 5 )
+        while True:
+            cliente, _ = servidor_sock.accept()
 
-        hilo_atencion = threading.Thread( target = atencion_clientes, args = ( cliente, ) )
-        hilo_atencion.start()
+            hilo_atencion = threading.Thread( target = atencion_clientes, args = ( cliente, ) )
+            hilo_atencion.start()
 
 def atencion_clientes( cliente ):
     while True:        
